@@ -23,24 +23,27 @@
         .white-ball { background-color: #ffffff; color: black; font-size: 0.6em; }
         .purple { background-color: #9b59b6; }
 
-        .rect-container { display: flex; gap: 6px; margin-bottom: 15px; } 
-        .custom-rect { width: 140px; height: 75px; background: rgba(0, 128, 0, 0.5); border: 3px solid #ddd; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); box-shadow: 0 8px 0 #004d00; display: flex; justify-content: center; align-items: center; position: relative; }
+        /* حاوية مربعات اللاعبين بالأعلى - أصبحت متطابقة تماماً في الحجم مع مربعات الشبكة بالأسفل */
+        .rect-container { display: flex; gap: 6px; margin-bottom: 15px; width: 95vw; max-width: 450px; justify-content: center; } 
+        .custom-rect { width: calc(50% - 3px); height: 75px; background: rgba(0, 128, 0, 0.5); border: 3px solid #ddd; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); box-shadow: 0 8px 0 #004d00; display: flex; justify-content: center; align-items: center; position: relative; }
         .sum-text { font-size: 2.3em; font-weight: 900; color: white; }
         .player-label { position: absolute; top: 2px; font-size: 0.55em; color: black; font-weight: 900; }
         
         .winner { animation: blink 1s infinite alternate; border: 4px solid gold !important; }
         @keyframes blink { from { background: rgba(255, 215, 0, 0.4); } to { background: rgba(255, 215, 0, 1); } }
 
+        /* شبكة مربعات الأرقام بالأسفل */
         .small-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 95vw; max-width: 450px; perspective: 1000px; padding-bottom: 20px; }
         .flip-card { height: 75px; cursor: pointer; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
         .flip-card.flipped { transform: rotateY(180deg); }
         
-        .front { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; justify-content: center; align-items: center; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); background: rgba(0, 128, 0, 0.5); border: 2px solid #ddd; font-weight: 900; font-size: 3em; color: black; }
+        .front { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; justify-content: center; align-items: center; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); background: rgba(0, 128, 0, 0.5); border: 2px solid #ddd; font-weight: 900; font-size: 2.5em; color: black; }
         .back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); background: white; transform: rotateY(180deg); border: 2px solid #ddd; font-weight: 900; }
         
-        .val-text { font-size: 3em; color: black; }
-        .key-text { font-size: 2em; color: gold; line-height: 1; }
-        .key-icon { font-size: 1.1em; margin-bottom: -2px; }
+        /* تحكم بحجم الأرقام داخل مربعات الخلف */
+        .val-text { font-size: 2.2em; color: black; }
+        .key-text { font-size: 1.8em; color: gold; line-height: 1; }
+        .key-icon { font-size: 1em; margin-bottom: -2px; }
         
         .glowing-gold { animation: superPulse 0.5s infinite alternate !important; border: 4px solid #FFD700 !important; background: #fffdf0 !important; }
         @keyframes superPulse { 0% { transform: scale(1) rotateY(180deg); box-shadow: 0 0 10px gold; } 100% { transform: scale(1.05) rotateY(180deg); box-shadow: 0 0 30px gold; } }
@@ -80,37 +83,28 @@
             }
         }
 
-        // أصوات ماريمفا وبيانو لطيفة وناعمة جداً بناءً على القيمة
         function playGentleChime(valNum) {
             try {
                 initAudio();
                 let now = audioCtx.currentTime;
-                
-                // درجات سلم موسيقي خفيف وناعم (نغمات بهجة هادئة)
                 let scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00];
                 let index = Math.floor(((valNum - 350) / (1000 - 350)) * (scale.length - 1));
                 if (index < 0) index = 0;
                 if (index >= scale.length) index = scale.length - 1;
                 
                 let baseFreq = scale[index];
-                let notes = [baseFreq, baseFreq * 1.25]; // نغمتين ناعمتين مع بعض (هارموني خفيف)
+                let notes = [baseFreq, baseFreq * 1.25];
 
                 notes.forEach((freq, i) => {
                     let osc = audioCtx.createOscillator();
                     let gain = audioCtx.createGain();
-                    
-                    // استخدام موجة ساينة (Sine) لأنها الأصفي والأعمق والأكثر نعومة بعيداً عن أي إزعاج
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, now + (i * 0.05));
-                    
-                    // إرتفاع تدريجي ناعم وتلاشي بطيء ومريح للذن
                     gain.gain.setValueAtTime(0, now);
                     gain.gain.linearRampToValueAtTime(0.2, now + 0.08);
                     gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
-
                     osc.start(now + (i * 0.05));
                     osc.stop(now + 0.5);
                 });
@@ -281,8 +275,6 @@
 
             if (!el.classList.contains('flipped')) {
                 el.classList.add('flipped');
-                
-                // تشغيل النغمة اللطيفة والناعمة حسب القيمة
                 playSound('gentle-reveal', val);
 
                 if (!freeMode && !revealed) {
