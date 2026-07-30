@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <style>
         * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box; }
-        body { margin: 0; padding: 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, #FFD700 30%, #DAA520 60%, #8B4513 100%); min-height: 100vh; font-family: 'Arial Black', sans-serif; overflow-x: hidden; }
+        body { margin: 0; padding: 2px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, #FFD700 30%, #DAA520 60%, #8B4513 100%); min-height: 100vh; font-family: 'Arial Black', sans-serif; overflow: hidden; touch-action: none; }
 
         .game-viewport {
             display: flex;
@@ -13,10 +13,9 @@
             align-items: center;
             width: 100%;
             max-width: 450px;
-            touch-action: pan-y pinch-zoom;
-            /* تحكم مرن بالطول الإجمالي للواجهة لضمان عدم الخروج عن الشاشة */
-            max-height: 98vh;
-            justify-content: center;
+            /* خاصية التعديل الحر بالإصبعين */
+            transform-origin: center center;
+            will-change: transform;
         }
 
         .header-container { display: flex; gap: 4px; margin-top: 1px; margin-bottom: 4px; cursor: pointer; align-items: center; flex-wrap: wrap; justify-content: center; }
@@ -26,16 +25,26 @@
         .white-ball { background-color: #ffffff; color: black; font-size: 0.5em; }
         .purple { background-color: #9b59b6; }
 
-        /* مربعات العدادات بالأعلى - ارتفاع عمودي مضغوط تماماً */
         .rect-container { display: flex; gap: 5px; margin-bottom: 5px; width: 95vw; max-width: 450px; justify-content: center; } 
-        .custom-rect { width: calc(50% - 2.5px); height: 48px; background: rgba(0, 128, 0, 0.5); border: 2px solid #ddd; clip-path: polygon(0% 0%, 10% 15%, 20% 0%, 30% 15%, 40% 0%, 90% 0%, 100% 15%, 100% 85%, 90% 100%, 80% 85%, 70% 100%, 60% 85%, 50% 100%, 10% 100%, 0% 85%); box-shadow: 0 4px 0 #004d00; display: flex; justify-content: center; align-items: center; position: relative; }
+        .custom-rect { width: calc(50% - 2.5px); height: 48px; background: rgba(0, 128, 0, 0.5); border: 2px solid #ddd; clip-path: polygon(0% 0%, 10% 15%, 20% 0%, 30% 15%, 40% 0%, 90% 0%, 100% 15%, 100% 85%, 90% 100%, 80% 85%, 70% 100%, 60% 85%, 50% 100%, 10% 100%, 0% 85%); box-shadow: 0 4px 0 #004d00; display: flex; justify-content: center; align-items: center; position: relative; transition: all 0.3s ease; }
         .sum-text { font-size: 1.5em; font-weight: 900; color: white; }
         .player-label { position: absolute; top: 1px; font-size: 0.45em; color: black; font-weight: 900; }
         
+        .glow-active { animation: softGlow 0.4s ease alternate; }
+        @keyframes softGlow {
+            0% { box-shadow: 0 4px 0 #004d00, 0 0 5px #fff; }
+            100% { box-shadow: 0 4px 0 #004d00, 0 0 20px #00ffcc; border-color: #00ffcc; }
+        }
+
+        .gold-glow-final { animation: goldenPulse 0.8s infinite alternate !important; border: 3px solid gold !important; background: rgba(255, 215, 0, 0.7) !important; }
+        @keyframes goldenPulse {
+            0% { box-shadow: 0 4px 0 #b8860b, 0 0 10px gold; transform: scale(1); }
+            100% { box-shadow: 0 4px 0 #b8860b, 0 0 35px #FFD700; transform: scale(1.02); }
+        }
+
         .winner { animation: blink 1s infinite alternate; border: 3px solid gold !important; }
         @keyframes blink { from { background: rgba(255, 215, 0, 0.4); } to { background: rgba(255, 215, 0, 1); } }
 
-        /* شبكة مربعات الأرقام بالأسفل - ارتفاع عمودي مدروس للشاشات القصيرة */
         .small-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 95vw; max-width: 450px; perspective: 1000px; padding-bottom: 5px; }
         .flip-card { height: 50px; cursor: pointer; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
         .flip-card.flipped { transform: rotateY(180deg); }
@@ -52,7 +61,7 @@
     </style>
 </head>
 <body onclick="makeFullScreen()">
-    <div class="game-viewport">
+    <div class="game-viewport" id="gameViewport">
         <div class="header-container">
             <button class="ball blue" onclick="playSound('click'); setMode(3)">3</button>
             <button class="ball green" onclick="playSound('click'); setMode(4)">4</button>
@@ -75,6 +84,41 @@
         let mode = 3, keyMode = false, isKeyFound = false, revealed = false, freeMode = false;
         let openOrder = [];
         
+        // متغيرات التحكم باللمس المتعدد (للإصبعين)
+        let scaleX = 1, scaleY = 1;
+        let initialDistanceX = 0, initialDistanceY = 0;
+        let startScaleX = 1, startScaleY = 1;
+        
+        const viewport = document.getElementById('gameViewport');
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                initialDistanceX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+                initialDistanceY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+                startScaleX = scaleX;
+                startScaleY = scaleY;
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                let currentDistX = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+                let currentDistY = Math.abs(e.touches[0].clientY - e.touches[1].clientY);
+
+                if (initialDistanceX > 10) {
+                    scaleX = startScaleX * (currentDistX / initialDistanceX);
+                    scaleX = Math.max(0.6, Math.min(scaleX, 1.5)); // حدود أمان للعرض
+                }
+                if (initialDistanceY > 10) {
+                    scaleY = startScaleY * (currentDistY / initialDistanceY);
+                    scaleY = Math.max(0.5, Math.min(scaleY, 1.4)); // حدود أمان للطول
+                }
+
+                viewport.style.transform = `scale(${scaleX}, ${scaleY})`;
+            }
+        }, { passive: false });
+
         let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
@@ -280,10 +324,25 @@
                 playSound('gentle-reveal', val);
 
                 if (!freeMode && !revealed) {
+                    let totalRequired = mode * 2;
+                    let currentIndexCount = openOrder.length;
+                    
                     openOrder.push({val: val});
                     updateSums();
 
-                    let totalRequired = mode * 2;
+                    let activeRectId = (currentIndexCount < mode) ? 'rect1' : 'rect2';
+                    let activeRect = document.getElementById(activeRectId);
+                    
+                    activeRect.classList.add('glow-active');
+                    setTimeout(() => {
+                        activeRect.classList.remove('glow-active');
+                    }, 400);
+
+                    if (currentIndexCount + 1 === mode || currentIndexCount + 1 === totalRequired) {
+                        let targetPlayerRect = (currentIndexCount < mode) ? document.getElementById('rect1') : document.getElementById('rect2');
+                        targetPlayerRect.classList.add('gold-glow-final');
+                    }
+
                     if (openOrder.length === totalRequired) {
                         setTimeout(() => {
                             playSound('finish-sound'); 
@@ -319,8 +378,8 @@
         function clearSums() {
             document.getElementById('box1').innerText = 0;
             document.getElementById('box2').innerText = 0;
-            document.getElementById('rect1').classList.remove('winner');
-            document.getElementById('rect2').classList.remove('winner');
+            document.getElementById('rect1').classList.remove('winner', 'gold-glow-final', 'glow-active');
+            document.getElementById('rect2').classList.remove('winner', 'gold-glow-final', 'glow-active');
             openOrder = [];
         }
 
