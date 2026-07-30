@@ -2,72 +2,231 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <style>
         * { -webkit-tap-highlight-color: transparent; outline: none; box-sizing: border-box; }
-        body { margin: 0; display: flex; flex-direction: column; align-items: center; background: radial-gradient(circle at center, #FFD700 30%, #DAA520 60%, #8B4513 100%); min-height: 100vh; font-family: 'Arial Black', sans-serif; overflow: hidden; }
+        body { margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, #FFD700 30%, #DAA520 60%, #8B4513 100%); min-height: 100vh; font-family: 'Arial Black', sans-serif; overflow-x: hidden; }
 
-        .header-container { display: flex; gap: 8px; margin-top: 10px; cursor: pointer; align-items: center; }
-        .ball { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 900; color: white; border: none; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(0,0,0,0.2)); box-shadow: inset -2px -2px 5px rgba(0,0,0,0.4); font-size: 0.7em; }
+        .game-viewport {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 450px;
+            touch-action: pan-y pinch-zoom;
+        }
+
+        .header-container { display: flex; gap: 8px; margin-top: 5px; margin-bottom: 10px; cursor: pointer; align-items: center; flex-wrap: wrap; justify-content: center; }
+        .ball { width: 35px; height: 35px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: 900; color: white; border: none; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(0,0,0,0.2)); box-shadow: inset -2px -2px 5px rgba(0,0,0,0.4); font-size: 0.7em; transition: transform 0.1s, filter 0.1s; }
+        .ball:active { transform: scale(0.9); filter: brightness(0.8); }
         .blue { background-color: #3498db; } .green { background-color: #27ae60; } .black { background-color: #2c3e50; font-size: 0.6em; } .red { background-color: #c0392b; } 
         .white-ball { background-color: #ffffff; color: black; font-size: 0.6em; }
         .purple { background-color: #9b59b6; }
 
-        .rect-container { display: flex; gap: 6px; margin-top: 10px; margin-bottom: 10px; } 
-        .custom-rect { width: 140px; height: 80px; background: rgba(0, 128, 0, 0.5); border: 3px solid #ddd; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); box-shadow: 0 10px 0 #004d00; display: flex; justify-content: center; align-items: center; position: relative; }
-        .sum-text { font-size: 2em; font-weight: 900; color: white; }
-        .player-label { position: absolute; top: 2px; font-size: 0.6em; color: black; font-weight: 900; }
+        .rect-container { display: flex; gap: 6px; margin-bottom: 15px; } 
+        .custom-rect { width: 140px; height: 75px; background: rgba(0, 128, 0, 0.5); border: 3px solid #ddd; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); box-shadow: 0 8px 0 #004d00; display: flex; justify-content: center; align-items: center; position: relative; }
+        .sum-text { font-size: 2.3em; font-weight: 900; color: white; }
+        .player-label { position: absolute; top: 2px; font-size: 0.55em; color: black; font-weight: 900; }
         
         .winner { animation: blink 1s infinite alternate; border: 4px solid gold !important; }
         @keyframes blink { from { background: rgba(255, 215, 0, 0.4); } to { background: rgba(255, 215, 0, 1); } }
 
-        .small-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 95vw; margin-top: 5px; perspective: 1000px; }
-        .flip-card { height: 75px; cursor: pointer; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .small-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 95vw; max-width: 450px; perspective: 1000px; padding-bottom: 20px; }
+        .flip-card { height: 75px; cursor: pointer; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
         .flip-card.flipped { transform: rotateY(180deg); }
         
-        .front { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; justify-content: center; align-items: center; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); background: rgba(0, 128, 0, 0.5); border: 2px solid #ddd; font-weight: 900; font-size: 2.2em; color: black; }
+        .front { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; justify-content: center; align-items: center; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); background: rgba(0, 128, 0, 0.5); border: 2px solid #ddd; font-weight: 900; font-size: 3em; color: black; }
         .back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; clip-path: polygon(0% 0%, 10% 10%, 20% 0%, 30% 10%, 40% 0%, 90% 0%, 100% 10%, 100% 90%, 90% 100%, 80% 90%, 70% 100%, 60% 90%, 50% 100%, 10% 100%, 0% 90%); background: white; transform: rotateY(180deg); border: 2px solid #ddd; font-weight: 900; }
         
-        .val-text { font-size: 2em; color: black; }
-        .key-text { font-size: 2em; color: gold; }
-        .key-icon { font-size: 1.5em; margin-bottom: -5px; }
+        .val-text { font-size: 3em; color: black; }
+        .key-text { font-size: 2em; color: gold; line-height: 1; }
+        .key-icon { font-size: 1.1em; margin-bottom: -2px; }
         
         .glowing-gold { animation: superPulse 0.5s infinite alternate !important; border: 4px solid #FFD700 !important; background: #fffdf0 !important; }
         @keyframes superPulse { 0% { transform: scale(1) rotateY(180deg); box-shadow: 0 0 10px gold; } 100% { transform: scale(1.05) rotateY(180deg); box-shadow: 0 0 30px gold; } }
     </style>
 </head>
 <body onclick="makeFullScreen()">
-    <div class="header-container">
-        <button class="ball blue" onclick="setMode(3)">3</button>
-        <button class="ball green" onclick="setMode(4)">4</button>
-        <button class="ball purple" onclick="setMode(5)">5</button>
-        <button class="ball black" onclick="resetAndShuffle()">MIX</button>
-        <button class="ball red" onclick="activateKeyMode()">🔑</button>
-        <button class="ball white-ball" onclick="activateFreeMode()">FREE</button>
-        <button class="ball white-ball" onclick="toggleReveal()">👁️</button>
-    </div>
+    <div class="game-viewport">
+        <div class="header-container">
+            <button class="ball blue" onclick="playSound('click'); setMode(3)">3</button>
+            <button class="ball green" onclick="playSound('click'); setMode(4)">4</button>
+            <button class="ball purple" onclick="playSound('click'); setMode(5)">5</button>
+            <button class="ball black" onclick="playSound('click'); resetAndShuffle()">MIX</button>
+            <button class="ball red" onclick="playSound('click'); activateKeyMode()">🔑</button>
+            <button class="ball white-ball" onclick="playSound('click'); activateFreeMode()">FREE</button>
+            <button class="ball white-ball" onclick="playSound('click'); toggleReveal()">👁️</button>
+        </div>
 
-    <div class="rect-container">
-        <div id="rect1" class="custom-rect"><span class="player-label">اللاعب الأول</span><div id="box1" class="sum-text">0</div></div>
-        <div id="rect2" class="custom-rect"><span class="player-label">اللاعب الثاني</span><div id="box2" class="sum-text">0</div></div>
-    </div>
+        <div class="rect-container">
+            <div id="rect1" class="custom-rect"><span class="player-label">اللاعب الأول</span><div id="box1" class="sum-text">0</div></div>
+            <div id="rect2" class="custom-rect"><span class="player-label">اللاعب الثاني</span><div id="box2" class="sum-text">0</div></div>
+        </div>
 
-    <div class="small-grid" id="grid"></div>
+        <div class="small-grid" id="grid"></div>
+    </div>
 
     <script>
         let mode = 3, keyMode = false, isKeyFound = false, revealed = false, freeMode = false;
         let openOrder = [];
-        let baseItems = ['1000', 900, 900, 900, 900, 800, 800, 800, 800, 700, 700, 700, 700, 700, 600, 600, 600, 600, 600, 600, 500, 500, 500, 500, 500, 400, 400, 400, 400, 300, 300, 300];
+        
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // أصوات ماريمفا وبيانو لطيفة وناعمة جداً بناءً على القيمة
+        function playGentleChime(valNum) {
+            try {
+                initAudio();
+                let now = audioCtx.currentTime;
+                
+                // درجات سلم موسيقي خفيف وناعم (نغمات بهجة هادئة)
+                let scale = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00];
+                let index = Math.floor(((valNum - 350) / (1000 - 350)) * (scale.length - 1));
+                if (index < 0) index = 0;
+                if (index >= scale.length) index = scale.length - 1;
+                
+                let baseFreq = scale[index];
+                let notes = [baseFreq, baseFreq * 1.25]; // نغمتين ناعمتين مع بعض (هارموني خفيف)
+
+                notes.forEach((freq, i) => {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    
+                    // استخدام موجة ساينة (Sine) لأنها الأصفي والأعمق والأكثر نعومة بعيداً عن أي إزعاج
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + (i * 0.05));
+                    
+                    // إرتفاع تدريجي ناعم وتلاشي بطيء ومريح للذن
+                    gain.gain.setValueAtTime(0, now);
+                    gain.gain.linearRampToValueAtTime(0.2, now + 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(now + (i * 0.05));
+                    osc.stop(now + 0.5);
+                });
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        function playSound(type, param = 0) {
+            try {
+                initAudio();
+
+                if (type === 'click') {
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.04);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.04);
+                } else if (type === 'gentle-reveal') {
+                    let valNum = parseInt(param);
+                    if (isNaN(valNum)) valNum = 500;
+                    playGentleChime(valNum);
+                } else if (type === 'finish-sound') {
+                    let now = audioCtx.currentTime;
+                    let finishNotes = [523.25, 659.25, 783.99, 1046.50];
+                    finishNotes.forEach((freq, idx) => {
+                        let osc = audioCtx.createOscillator();
+                        let gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + (idx * 0.1));
+                        gain.gain.setValueAtTime(0, now + (idx * 0.1));
+                        gain.gain.linearRampToValueAtTime(0.25, now + (idx * 0.1) + 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + (idx * 0.1) + 0.4);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + (idx * 0.1));
+                        osc.stop(now + (idx * 0.1) + 0.4);
+                    });
+                } else if (type === 'page-flip') {
+                    let now = audioCtx.currentTime;
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(450, now + 0.1);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.1);
+                } else if (type === 'ta-da') {
+                    let now = audioCtx.currentTime;
+                    let keyNotes = [587.33, 739.99, 880.00];
+                    keyNotes.forEach((freq, idx) => {
+                        let osc = audioCtx.createOscillator();
+                        let gain = audioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + (idx * 0.12));
+                        gain.gain.setValueAtTime(0, now + (idx * 0.12));
+                        gain.gain.linearRampToValueAtTime(0.3, now + (idx * 0.12) + 0.05);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + (idx * 0.12) + 0.5);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(now + (idx * 0.12));
+                        osc.stop(now + (idx * 0.12) + 0.5);
+                    });
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        }
+
+        let baseItems = [
+            '1000', 
+            950, 950, 
+            900, 900, 
+            850, 850, 850, 
+            800, 800, 800, 
+            750, 750, 750, 
+            700, 700, 700, 
+            650, 650, 650, 
+            600, 600, 600, 
+            550, 550, 550, 
+            500, 500, 500, 
+            350, 350, 350  
+        ];
+
+        function shuffleArray(array) {
+            let currentIndex = array.length, randomIndex;
+            for (let t = 0; t < 2; t++) {
+                while (currentIndex !== 0) {
+                    randomIndex = Math.floor(Math.random() * currentIndex);
+                    currentIndex--;
+                    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+                }
+                currentIndex = array.length;
+            }
+            return array;
+        }
 
         function renderGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            let items = [...baseItems].sort(() => Math.random() - 0.5);
+            let items = shuffleArray([...baseItems]);
             for(let i=0; i<32; i++) {
                 let val = items[i];
                 let isKey = (val == 1000);
                 grid.innerHTML += `
-                    <div class="flip-card" onclick="flip(this, '${val}')">
+                    <div class="flip-card" data-index="${i}" onclick="handleCardClick(${i}, '${val}')">
                         <div class="front">${i+1}</div>
                         <div class="back ${isKey ? 'glowing-gold' : ''}">
                             ${isKey ? '<div class="key-icon">🔑</div><div class="key-text">1000</div>' : '<div class="val-text">'+val+'</div>'}
@@ -76,27 +235,71 @@
             }
         }
 
-        function flip(el, val) {
-            if (keyMode && isKeyFound) return;
-            
-            if(!el.classList.contains('flipped')) {
-                el.classList.add('flipped');
+        function handleCardClick(index, val) {
+            const cards = document.querySelectorAll('.flip-card');
+            const el = cards[index];
+
+            if (keyMode) {
+                if (isKeyFound) return;
                 
-                // في وضع المفتاح، لا نمرر أي بيانات للجمع
-                if(keyMode) {
-                    if(val == 1000) isKeyFound = true;
-                    return; 
+                let rowIndex = Math.floor(index / 4);
+                let startIndex = rowIndex * 4;
+
+                let rowContainsKeys = false;
+                for (let i = 0; i < 4; i++) {
+                    let targetCard = cards[startIndex + i];
+                    if (targetCard) {
+                        let cardBack = targetCard.querySelector('.back');
+                        if (cardBack.innerHTML.includes('1000')) {
+                            rowContainsKeys = true;
+                        }
+                    }
                 }
 
-                if(!freeMode && !revealed) {
+                for (let i = 0; i < 4; i++) {
+                    let targetCard = cards[startIndex + i];
+                    if (targetCard && !targetCard.classList.contains('flipped')) {
+                        setTimeout(() => {
+                            targetCard.classList.add('flipped');
+                            playSound('page-flip');
+                        }, i * 150);
+
+                        let cardBack = targetCard.querySelector('.back');
+                        if (cardBack.innerHTML.includes('1000')) {
+                            isKeyFound = true;
+                        }
+                    }
+                }
+
+                if (rowContainsKeys) {
+                    setTimeout(() => {
+                        playSound('ta-da');
+                    }, 300);
+                }
+                return;
+            }
+
+            if (!el.classList.contains('flipped')) {
+                el.classList.add('flipped');
+                
+                // تشغيل النغمة اللطيفة والناعمة حسب القيمة
+                playSound('gentle-reveal', val);
+
+                if (!freeMode && !revealed) {
                     openOrder.push({val: val});
                     updateSums();
+
+                    let totalRequired = mode * 2;
+                    if (openOrder.length === totalRequired) {
+                        setTimeout(() => {
+                            playSound('finish-sound'); 
+                        }, 500);
+                    }
                 }
             }
         }
 
         function updateSums() {
-            // إضافة حماية: إذا كان وضع المفتاح فعالاً، اخرج فوراً
             if (keyMode) {
                 document.getElementById('box1').innerText = 0;
                 document.getElementById('box2').innerText = 0;
@@ -128,7 +331,7 @@
         }
 
         function resetAndShuffle() {
-            freeMode = false; revealed = false; keyMode = false; isKeyFound = false;
+            revealed = false; isKeyFound = false;
             let cards = Array.from(document.querySelectorAll('.flip-card'));
             for(let card of cards) card.classList.remove('flipped');
             clearSums();
@@ -139,7 +342,7 @@
             keyMode = true; 
             isKeyFound = false; 
             freeMode = false;
-            clearSums(); // تصفير فوري
+            clearSums();
             let cards = Array.from(document.querySelectorAll('.flip-card'));
             for(let card of cards) card.classList.remove('flipped');
         }
