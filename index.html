@@ -13,7 +13,6 @@
             align-items: center;
             width: 100%;
             max-width: 450px;
-            /* خاصية التعديل الحر بالإصبعين */
             transform-origin: center center;
             will-change: transform;
         }
@@ -30,20 +29,20 @@
         .sum-text { font-size: 1.5em; font-weight: 900; color: white; }
         .player-label { position: absolute; top: 1px; font-size: 0.45em; color: black; font-weight: 900; }
         
-        .glow-active { animation: softGlow 0.4s ease alternate; }
-        @keyframes softGlow {
-            0% { box-shadow: 0 4px 0 #004d00, 0 0 5px #fff; }
-            100% { box-shadow: 0 4px 0 #004d00, 0 0 20px #00ffcc; border-color: #00ffcc; }
+        /* وهج سريع ولطيف مع كل إضافة رقم */
+        .flash-glow { animation: quickFlash 0.35s ease forwards; }
+        @keyframes quickFlash {
+            0% { box-shadow: 0 4px 0 #004d00, 0 0 2px #fff; background: rgba(0, 128, 0, 0.5); }
+            50% { box-shadow: 0 4px 0 #004d00, 0 0 25px #00ffcc; background: rgba(0, 255, 204, 0.7); border-color: #fff; }
+            100% { box-shadow: 0 4px 0 #004d00, 0 0 2px #fff; background: rgba(0, 128, 0, 0.5); }
         }
 
-        .gold-glow-final { animation: goldenPulse 0.8s infinite alternate !important; border: 3px solid gold !important; background: rgba(255, 215, 0, 0.7) !important; }
-        @keyframes goldenPulse {
+        /* توهج ونبض مستمر للفائز بالسكور الأعلى في نهاية اللعبة */
+        .winner-glow { animation: winnerPulse 0.8s infinite alternate !important; border: 3px solid gold !important; background: rgba(255, 215, 0, 0.8) !important; }
+        @keyframes winnerPulse {
             0% { box-shadow: 0 4px 0 #b8860b, 0 0 10px gold; transform: scale(1); }
-            100% { box-shadow: 0 4px 0 #b8860b, 0 0 35px #FFD700; transform: scale(1.02); }
+            100% { box-shadow: 0 4px 0 #b8860b, 0 0 35px #FFD700; transform: scale(1.03); }
         }
-
-        .winner { animation: blink 1s infinite alternate; border: 3px solid gold !important; }
-        @keyframes blink { from { background: rgba(255, 215, 0, 0.4); } to { background: rgba(255, 215, 0, 1); } }
 
         .small-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 95vw; max-width: 450px; perspective: 1000px; padding-bottom: 5px; }
         .flip-card { height: 50px; cursor: pointer; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
@@ -108,11 +107,11 @@
 
                 if (initialDistanceX > 10) {
                     scaleX = startScaleX * (currentDistX / initialDistanceX);
-                    scaleX = Math.max(0.6, Math.min(scaleX, 1.5)); // حدود أمان للعرض
+                    scaleX = Math.max(0.6, Math.min(scaleX, 1.5));
                 }
                 if (initialDistanceY > 10) {
                     scaleY = startScaleY * (currentDistY / initialDistanceY);
-                    scaleY = Math.max(0.5, Math.min(scaleY, 1.4)); // حدود أمان للطول
+                    scaleY = Math.max(0.5, Math.min(scaleY, 1.4));
                 }
 
                 viewport.style.transform = `scale(${scaleX}, ${scaleY})`;
@@ -330,18 +329,13 @@
                     openOrder.push({val: val});
                     updateSums();
 
+                    // تحديد خانة اللاعب الحالي (الأول أو الثاني) وإعطائها ومضة سريعة مع كل فتحة مربع
                     let activeRectId = (currentIndexCount < mode) ? 'rect1' : 'rect2';
                     let activeRect = document.getElementById(activeRectId);
                     
-                    activeRect.classList.add('glow-active');
-                    setTimeout(() => {
-                        activeRect.classList.remove('glow-active');
-                    }, 400);
-
-                    if (currentIndexCount + 1 === mode || currentIndexCount + 1 === totalRequired) {
-                        let targetPlayerRect = (currentIndexCount < mode) ? document.getElementById('rect1') : document.getElementById('rect2');
-                        targetPlayerRect.classList.add('gold-glow-final');
-                    }
+                    activeRect.classList.remove('flash-glow');
+                    void activeRect.offsetWidth; // إعادة تشغيل الأنيميشن
+                    activeRect.classList.add('flash-glow');
 
                     if (openOrder.length === totalRequired) {
                         setTimeout(() => {
@@ -369,17 +363,27 @@
             document.getElementById('box1').innerText = s1;
             document.getElementById('box2').innerText = s2;
 
+            // عند اكتمال الدور الكامل، إضاءة ونبض خانة السكور الأعلى فقط وبشكل مستمر
             if (openOrder.length >= (mode * 2)) {
-                if (s1 > s2) document.getElementById('rect1').classList.add('winner');
-                else if (s2 > s1) document.getElementById('rect2').classList.add('winner');
+                let rect1 = document.getElementById('rect1');
+                let rect2 = document.getElementById('rect2');
+                
+                rect1.classList.remove('winner-glow');
+                rect2.classList.remove('winner-glow');
+
+                if (s1 > s2) {
+                    rect1.classList.add('winner-glow');
+                } else if (s2 > s1) {
+                    rect2.classList.add('winner-glow');
+                }
             }
         }
 
         function clearSums() {
             document.getElementById('box1').innerText = 0;
             document.getElementById('box2').innerText = 0;
-            document.getElementById('rect1').classList.remove('winner', 'gold-glow-final', 'glow-active');
-            document.getElementById('rect2').classList.remove('winner', 'gold-glow-final', 'glow-active');
+            document.getElementById('rect1').classList.remove('winner-glow', 'flash-glow');
+            document.getElementById('rect2').classList.remove('winner-glow', 'flash-glow');
             openOrder = [];
         }
 
